@@ -4,9 +4,10 @@ Domain: Post-Quantum Cryptography & Hardware Security
 Standard: NIST FIPS 203/204/205 / ISO/IEC 17825 Standards
 """
 import datetime
+import math
 from enum import Enum
 from typing import Dict, Any, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class UrgencyLevel(str, Enum):
@@ -21,6 +22,13 @@ class SystemIntegrityStatus(str, Enum):
     RECALIBRATION_REQUIRED = "RECALIBRATION_REQUIRED"
 
 
+def _validate_finite_float(v: float) -> float:
+    """Reject NaN and Infinity values that could bypass threshold checks."""
+    if math.isnan(v) or math.isinf(v):
+        raise ValueError(f"Metric must be a finite number, got {v}")
+    return v
+
+
 class SystemTaskPayload(BaseModel):
     task_id: str = Field(..., description="Unique task / case identifier")
     target_identifier: str = Field(..., description="Entity, patient key, or genomic/cryptographic target")
@@ -30,6 +38,9 @@ class SystemTaskPayload(BaseModel):
     is_critical_flag: bool = Field(default=False, description="Emergency escalation or high priority trigger")
     attributes: Dict[str, Any] = Field(default_factory=dict, description="Metadata key-value pairs")
     timestamp: str = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+
+    _validate_primary = field_validator("primary_metric", mode="before")(_validate_finite_float)
+    _validate_secondary = field_validator("secondary_metric", mode="before")(_validate_finite_float)
 
 
 class AgentAlert(BaseModel):
