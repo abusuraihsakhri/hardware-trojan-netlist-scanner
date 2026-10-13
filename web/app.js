@@ -7,7 +7,9 @@
 function evaluateRecord(record) {
   const primary = Number(record.primary_metric);
   const secondary = Number(record.secondary_metric);
-  if (record.primary_metric === "" || record.secondary_metric === "" ||
+  if (record.primary_metric === null || record.secondary_metric === null ||
+      typeof record.primary_metric === "boolean" || typeof record.secondary_metric === "boolean" ||
+      String(record.primary_metric).trim() === "" || String(record.secondary_metric).trim() === "" ||
       !Number.isFinite(primary) || !Number.isFinite(secondary)) {
     throw new Error("Both metrics must be finite numbers.");
   }
