@@ -17,7 +17,11 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 requires-python = ">=3.9"
-dependencies = []
+dependencies = ["pydantic>=2,<3"]
+
+[project.optional-dependencies]
+api = ["fastapi>=0.100,<1", "uvicorn>=0.23,<1"]
+test = ["pytest>=8,<10"]
 
 [project.scripts]
 hardware-trojan-netlist-scanner = "hardware_trojan.cli:main"
