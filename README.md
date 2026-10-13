@@ -1,5 +1,7 @@
 # Hardware Trojan Netlist Scanner
 
+### [Open the Live Application →](https://abusuraihsakhri.github.io/hardware-trojan-netlist-scanner/)
+
 A Python command-line/API project with a standalone browser interface for **rule-based metric triage**.
 
 **Scope:** Despite the historical repository name, the current implementation does **not** parse Verilog/VHDL netlists, analyze connectivity, identify hardware Trojans, or validate designs against Trust-HUB or NIST standards. Its results are threshold-based flags on user-provided numeric records, not evidence of a Trojan. The two Python subsystems use different secondary thresholds; they must not be treated as interchangeable.

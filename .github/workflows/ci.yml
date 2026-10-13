@@ -50,6 +50,8 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: test-and-audit
     runs-on: ubuntu-latest
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     permissions:
       contents: read
       pages: write
@@ -65,3 +67,42 @@ jobs:
           path: web
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  smoke-pages:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: deploy-pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check published HTML and JavaScript
+        env:
+          PAGE_URL: ${{ needs.deploy-pages.outputs.page_url }}
+        run: |
+          python - <<'PY'
+          import os
+          import time
+          import urllib.request
+
+          base = os.environ["PAGE_URL"].rstrip("/") + "/"
+          if not base.startswith("https://"):
+              raise RuntimeError("Deployment did not return an HTTPS Pages URL")
+          for attempt in range(20):
+              try:
+                  req = urllib.request.Request(base, headers={"User-Agent": "Pages-Smoke-Test"})
+                  with urllib.request.urlopen(req, timeout=15) as response:
+                      assert response.status == 200
+                      html = response.read().decode("utf-8")
+                  req = urllib.request.Request(base + "app.js", headers={"User-Agent": "Pages-Smoke-Test"})
+                  with urllib.request.urlopen(req, timeout=15) as response:
+                      assert response.status == 200
+                      js = response.read().decode("utf-8")
+                  assert 'id="audit-form"' in html
+                  assert 'src="./app.js"' in html
+                  assert 'evaluateRecord' in js
+                  assert 'LOCAL_DETERMINISTIC_METRIC_TRIAGE' in js
+                  print(f"Verified public HTML and evaluator assets at {base}")
+                  break
+              except (AssertionError, OSError, UnicodeError) as exc:
+                  if attempt == 19:
+                      raise RuntimeError(f"GitHub Pages HTTP smoke test failed: {exc}") from exc
+                  time.sleep(5)
+          PY
