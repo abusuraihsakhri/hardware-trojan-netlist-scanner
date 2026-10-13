@@ -3,8 +3,9 @@ FastAPI REST API Server for Hardware Trojan Netlist Scanner.
 """
 from typing import Dict, Any, List
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from .base import AuditLogger, PHIGuard
+from .base import AuditLogger, PHIGuard, SecurityException
 from .models import SystemTaskPayload, ConsensusDossier
 from .supervisor import SystemSupervisor
 
@@ -15,6 +16,11 @@ app = FastAPI(
     description="Enterprise Distributed Component Platform (Post-Quantum Cryptography & Hardware Security)",
     version="3.0.0-ENTERPRISE",
 )
+
+
+@app.exception_handler(SecurityException)
+async def security_error(request, exc: SecurityException):
+    return JSONResponse(status_code=422, content={"detail": "Input contains a restricted identifier."})
 
 
 class ChatRequest(BaseModel):
@@ -46,8 +52,8 @@ def api_chat(req: ChatRequest):
     try:
         ans = supervisor.query_supervisory_chat(req.query)
         return {"response": ans}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except SecurityException:
+        raise HTTPException(status_code=422, detail="Input contains a restricted identifier.")
 
 
 @app.get("/api/audit/logs")

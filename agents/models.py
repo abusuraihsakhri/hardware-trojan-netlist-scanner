@@ -24,9 +24,15 @@ class SystemIntegrityStatus(str, Enum):
 
 def _validate_finite_float(v: float) -> float:
     """Reject NaN and Infinity values that could bypass threshold checks."""
-    if math.isnan(v) or math.isinf(v):
-        raise ValueError(f"Metric must be a finite number, got {v}")
-    return v
+    if isinstance(v, bool):
+        raise ValueError("Metric must be a finite number, not a boolean")
+    try:
+        numeric = float(v)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("Metric must be a finite number") from exc
+    if not math.isfinite(numeric):
+        raise ValueError("Metric must be a finite number")
+    return numeric
 
 
 class SystemTaskPayload(BaseModel):
